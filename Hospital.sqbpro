@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="C:/Users/title/Port/Hospital.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="2817"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><current_table name="4,12:mainappointments"/><default_encoding codec=""/><browse_table_settings><table schema="main" name="appointments" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_"><sort/><column_widths><column index="1" value="95"/><column index="2" value="63"/><column index="3" value="60"/><column index="4" value="110"/><column index="5" value="110"/><column index="6" value="98"/><column index="7" value="68"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table></browse_table_settings></tab_browse><tab_sql><sql name="SQL 1">-- preview data 
+SELECT *
+FROM patients
+LIMIT 5;
+
+-- show a doctor who have an exps more than 5 years
+SELECT first_name, last_name, specialization, years_experience
+FROM doctors
+WHERE years_experience &gt; 5
+ORDER by years_experience DESC;
+-- show patient name and doctor name make appointment
+SELECT patients.first_name AS patient_name,
+		doctors.first_name AS doctor_name,
+		appointments.appointment_date 
+FROM appointments
+JOIN patients ON appointments.patient_id = patients.patient_id
+JOIN doctors ON appointments.doctor_id = doctors.doctor_id
+ORDER BY appointments.appointment_date DESC;
+
+-- summarize how many times, each of appointment in each type
+SELECT treatment_type, count(*) AS treatment_count, sum(cost) AS total_cost
+FROM treatments
+GROUP BY treatment_type
+ORDER BY treatment_count DESC;
+
+-- revenue for the mounth (included treatment from billing)
+SELECT strftime('%Y-%m', bill_date) AS billing_mounth,
+		sum(amount) AS total_revenue
+FROM billing 
+GROUP BY billing_mounth
+ORDER BY billing_mounth;
+
+-- total revenue from each doctor 
+SELECT doctors.first_name ||' '|| doctors.last_name AS doctor_name,
+		sum(billing.amount) AS revenue
+FROM billing 
+JOIN treatments ON billing.treatment_id = treatments.treatment_id
+JOIN appointments ON treatments.appointment_id = appointments.appointment_id
+JOIN doctors ON appointments.doctor_id = doctors.doctor_id
+
+GROUP BY doctor_name 
+ORDER BY revenue DESC;
+
+-- patient who have most appointment 
+SELECT patients.first_name ||' '|| patients.last_name AS patient_name,
+		count(*)AS total_appointments
+FROM appointments
+JOIN patients ON appointments.patient_id = patients.patient_id
+GROUP BY patient_name
+ORDER BY total_appointments DESC
+LIMIT 5;
+
+-- for patient who did appointment but not showing up
+SELECT patients.first_name ||' '|| patients.last_name AS patient_name,
+	count(*) AS missed
+FROM appointments
+JOIN patients ON appointments.patient_id = patients.patient_id
+WHERE status = 'No-show' 
+GROUP BY patient_name
+ORDER BY missed DESC
+LIMIT 5;
+
+-- KPI : Income per doctor and time of appointment
+SELECT doctors.first_name||' '||doctors.last_name AS doctor_name,
+		count(DISTINCT appointments.appointment_id) AS num_appointments,
+		sum(billing.amount) AS total_revenue
+FROM billing
+JOIN treatments ON billing.treatment_id = treatments.treatment_id
+JOIN appointments ON treatments.appointment_id = appointments.appointment_id
+JOIN doctors ON appointments.doctor_id = doctors.doctor_id
+GROUP BY doctor_name
+ORDER BY total_revenue DESC;
+
+-- view for income per mounth
+CREATE VIEW monthly_revenue AS
+SELECT strftime('%Y-%m', bill_date) AS month,
+	sum(amount) AS total
+FROM billing
+GROUP BY month;
+
+-- view for doctor_kpi
+CREATE VIEW doctor_kpis AS 
+SELECT doctors.first_name||' '||doctors.last_name AS doctor_name,
+		count(DISTINCT appointments.appointment_id) AS num_appointments,
+		sum(billing.amount) AS total_revenue
+FROM billing
+JOIN treatments ON billing.treatment_id = treatments.treatment_id
+JOIN appointments ON treatments.appointment_id = appointments.appointment_id
+JOIN doctors ON appointments.doctor_id = doctors.doctor_id
+GROUP BY doctor_name
+ORDER BY total_revenue DESC;
+
+SELECT *
+FROM doctor_kpis;
+
+SELECT *
+FROM monthly_revenue;
+
+
+
+
+</sql><current_tab id="0"/></tab_sql></sqlb_project>
